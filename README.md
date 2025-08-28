@@ -51,7 +51,7 @@ Features
     Ensure you have an internet connection.
 
     Download the script from this repository using curl:
-    curl -L https://github.com/your-username/arch-install/raw/main/arch-install.sh -o install.sh
+    curl -L https://raw.githubusercontent.com/MichaelSWong/arch-install/refs/heads/main/install.sh.sh -o install.sh
 
     Make the script executable:
     chmod +x install.sh
