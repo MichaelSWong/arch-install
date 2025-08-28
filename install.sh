@@ -39,17 +39,6 @@ echo "--------------------------------------------------------------------------
 echo -e "\nEnter username to be created:"
 read user
 
-# Get number of cores for parallel downloads
-while true; do
-    echo -e "\nEnter the number of CPU cores for parallel downloads (e.g., 8):"
-    read cores
-    if [[ "$cores" =~ ^[0-9]+$ ]]; then
-        break
-    else
-        echo -e "\nInvalid input. Please enter a positive integer."
-    fi
-done
-
 # Function to handle password confirmation
 function set_password() {
     local prompt_msg=$1
@@ -78,6 +67,17 @@ read host
 
 echo -e "\nEnter desired timezone in format of Country/Region (e.g., America/Los_Angeles):"
 read tmzn
+
+# Get number of cores for parallel downloads
+while true; do
+    echo -e "\nEnter the number of CPU cores for parallel downloads (e.g., 8):"
+    read cores
+    if [[ "$cores" =~ ^[0-9]+$ ]]; then
+        break
+    else
+        echo -e "\nInvalid input. Please enter a positive integer."
+    fi
+done
 
 echo -e "\nInput gathered. Starting installation...\n"
 
@@ -177,6 +177,14 @@ arch-chroot /mnt <<EOF
     # Configure sudo for the 'wheel' group
     echo "Configuring sudo for the 'wheel' group..."
     echo '%wheel ALL=(ALL) ALL' >> /etc/sudoers
+
+    # Enable autologin on tty1 using a systemd override file
+    echo "Enabling autologin for user '${user}' on tty1..."
+    mkdir -p /etc/systemd/system/getty@tty1.service.d
+    echo "[Service]" >> /etc/systemd/system/getty@tty1.service.d/override.conf
+    echo "ExecStart=" >> /etc/systemd/system/getty@tty1.service.d/override.conf
+    echo "ExecStart=-/sbin/agetty -a ${user} --noclear %I ${TERM}" >> /etc/systemd/system/getty@tty1.service.d/override.conf
+    echo "TTYVTDisallocate=no" >> /etc/systemd/system/getty@tty1.service.d/override.conf
 EOF
 
 # --- STEP 7: INITCPIO & GRUB ---
