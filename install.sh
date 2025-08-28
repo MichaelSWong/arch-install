@@ -79,9 +79,6 @@ read host
 echo -e "\nEnter desired timezone in format of Country/Region (e.g., America/Los_Angeles):"
 read tmzn
 
-echo -e "\nEnter number of cores on your computer:"
-read cores
-
 echo -e "\nInput gathered. Starting installation...\n"
 
 # --- STEP 2: LOAD KEYBOARD LAYOUT ---
