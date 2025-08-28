@@ -19,25 +19,57 @@ set -e
 # --- STEP 1: GATHER USER INPUT ---
 # Using `read -s` for passwords to prevent them from being displayed.
 echo "--------------------------------------------------------------------------------"
-echo "--- Arch Linux Installation Setup ---"
+echo "                    -@                "
+echo "                   .##@               "
+echo "                  .####@              "
+echo "                  @#####@             "
+echo "                . *######@            "
+echo "               .##@o@#####@           "
+echo "              /############@          "
+echo "             /##############@         "
+echo "            @######@* *%######@        "
+echo "           @######`      %#####o       "
+echo "          @######@       ######%      "
+echo "        -@#######h       ######@.`    "
+echo "       /#####h**``        `**%@####@   "
+echo "      @H@*`                    `*%#@  "
+echo "     *`                            `* "
 echo "--------------------------------------------------------------------------------"
 
 echo -e "\nEnter username to be created:"
 read user
 
-echo -e "\nEnter new password for $user:"
-read -s uspw
-echo
+# Function to handle password confirmation
+function set_password() {
+    local prompt_msg=$1
+    local password_var=$2
+    local password_confirm_var=$3
 
-echo -e "\nEnter new password for root:"
-read -s rtpw
-echo
+    while true; do
+        echo -e "\n${prompt_msg}"
+        read -s ${password_var}
+        echo -e "\nPlease re-enter the password to confirm:"
+        read -s ${password_confirm_var}
+
+        if [[ "${!password_var}" == "${!password_confirm_var}" ]]; then
+            break
+        else
+            echo -e "\nPasswords do not match. Please try again."
+        fi
+    done
+}
+
+set_password "Enter new password for $user:" uspw uspw_confirm
+set_password "Enter new password for root:" rtpw rtpw_confirm
 
 echo -e "\nEnter new hostname (e.g., arch-pc):"
 read host
 
 echo -e "\nEnter desired timezone in format of Country/Region (e.g., America/Los_Angeles):"
 read tmzn
+
+echo -e "\nEnter number of cores on your computer:"
+read cores
 
 echo -e "\nInput gathered. Starting installation...\n"
 
@@ -93,10 +125,10 @@ mount "${BOOT_PARTITION}" /mnt/boot
 # --- STEP 5: ARCH INSTALL ---
 echo "Updating pacman configuration for faster downloads..."
 # Change ParallelDownloads setting to 16, regardless if the line is commented out
-sed -i 's/^#*ParallelDownloads = 5$/ParallelDownloads = 16/' /etc/pacman.conf
+sed -i 's/^#*ParallelDownloads = 5$/ParallelDownloads = ${cores}/' /etc/pacman.conf
 
 echo "Installing base system and essential packages..."
-pacstrap /mnt base base-devel neovim networkmanager lvm2 cryptsetup grub efibootmgr linux linux-firmware
+pacstrap /mnt base base-devel neovim networkmanager lvm2 cryptsetup grub efibootmgr linux linux-firmware btrfs-progs
 
 echo "Generating fstab file..."
 genfstab -U /mnt >> /mnt/etc/fstab
