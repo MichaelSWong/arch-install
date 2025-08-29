@@ -186,7 +186,7 @@ echo "Updating pacman configuration for faster downloads..."
 sed -i "s/^#*ParallelDownloads = 5$/ParallelDownloads = ${cores}/" /etc/pacman.conf
 
 echo "Installing base system and essential packages..."
-pacstrap /mnt base base-devel vim networkmanager lvm2 cryptsetup grub efibootmgr linux linux-firmware btrfs-progs
+pacstrap /mnt base base-devel vim networkmanager lvm2 cryptsetup grub efibootmgr linux linux-firmware btrfs-progs $nvidia_packages
 
 echo "Generating fstab file..."
 genfstab -U /mnt >> /mnt/etc/fstab
