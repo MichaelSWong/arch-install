@@ -79,6 +79,56 @@ while true; do
     fi
 done
 
+# --- STEP 1.5: NVIDIA DRIVER SELECTION (if applicable) ---
+echo "--------------------------------------------------------------------------------"
+echo "Checking for NVIDIA GPU..."
+
+# Use lspci to check for a device with "NVIDIA" in its name
+if lspci | grep -q "NVIDIA"; then
+    echo "NVIDIA GPU detected! 🚀"
+    
+    # Pre-select base packages for NVIDIA
+    nvidia_packages="nvidia-utils linux-headers"
+
+    while true; do
+        echo -e "\nWhich NVIDIA driver do you want to install?"
+        echo "1) Proprietary (Non-DKMS) - Recommended for most users"
+        echo "2) Proprietary (DKMS) - For any kernel"
+        echo "3) Proprietary (Open) - Newer driver for some RTX cards"
+        echo "4) Proprietary (Open-DKMS) - Newer driver for some RTX cards"
+        read -p "Enter 1 or 2: " choice
+        
+        case "$choice" in
+             1)
+                nvidia_packages+=" nvidia"
+                echo "Proprietary (Non-DKMS) drivers selected."
+                break
+                ;;
+            2)
+                nvidia_packages+=" nvidia-dkms"
+                echo "Proprietary (DKMS) drivers selected."
+                break
+                ;;
+            3)
+                nvidia_packages+=" nvidia-open"
+                echo "Proprietary (Open) drivers selected."
+                break
+                ;;
+            4)
+                nvidia_packages+=" nvidia-open-dkms"
+                echo "Proprietary (Open-DKMS) drivers selected."
+                break
+                ;;
+            *)
+                echo "Invalid input. Please enter '1' '2' '3' '4'."
+                ;;
+        esac
+    done
+else
+    echo "No NVIDIA GPU detected. Skipping driver installation."
+    nvidia_packages=""
+fi
+
 echo -e "\nInput gathered. Starting installation...\n"
 
 # --- STEP 2: LOAD KEYBOARD LAYOUT ---
