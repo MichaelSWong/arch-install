@@ -79,44 +79,42 @@ while true; do
     fi
 done
 
-
 # --- STEP 1.2: Linux Kernel ---
 echo "--------------------------------------------------------------------------------"
 while true; do
     echo -e "\nWhich Linux Kernel do you want to install?"
-    echo "1) Stable"
-    echo "2) Hardened"
-    echo "3) Longterm"
-    echo "4) Zen"
+    echo "1) Stable (linux)"
+    echo "2) Hardened (linux-hardened)"
+    echo "3) Longterm (linux-lts)"
+    echo "4) Zen (linux-zen)"
     read -p "Enter 1, 2, 3, or 4: " choice
 
     case "$choice" in
         1)
-                linux_headers="linux linux-headers"
-                echo "Stable Kernel selected."
-                break
-                ;;
-            2)
-                linux_headers="linux-hardened linux-hardened-headers"
-                echo "Hardened Kernel selected."
-                break
-                ;;
-            3)
-                linux_headers="linux-lts linux-lts-headers"
-                echo "LTS Kernel selected."
-                break
-                ;;
-            4)
-                linux_headers="linux-zen linux-zen-headers"
-                echo "Zen Kernel selected."
-                break
-                ;;
-            *)
-                echo "Invalid input. Please enter '1' '2' '3' '4'."
-                ;;
-        esac
-    done
-fi
+            linux_packages="linux linux-headers"
+            echo "Stable Kernel selected."
+            break
+            ;;
+        2)
+            linux_packages="linux-hardened linux-hardened-headers"
+            echo "Hardened Kernel selected."
+            break
+            ;;
+        3)
+            linux_packages="linux-lts linux-lts-headers"
+            echo "LTS Kernel selected."
+            break
+            ;;
+        4)
+            linux_packages="linux-zen linux-zen-headers"
+            echo "Zen Kernel selected."
+            break
+            ;;
+        *)
+            echo "Invalid input. Please enter '1', '2', '3', or '4'."
+            ;;
+    esac
+done
 
 # --- STEP 1.3: NVIDIA DRIVER SELECTION (if applicable) ---
 echo "--------------------------------------------------------------------------------"
@@ -126,40 +124,40 @@ echo "Checking for NVIDIA GPU..."
 if lspci | grep -q "NVIDIA"; then
     echo "NVIDIA GPU detected! 🚀"
     
-    # Pre-select base packages for NVIDIA
-    nvidia_packages="nvidia-utils nvidia-utils nvidia-settings"
+    # Initialize an empty variable to add NVIDIA packages to
+    nvidia_packages=""
 
     while true; do
-        echo -e "\nWhich NVIDIA driver do you want to install? Choose DKMS if chose other than stable"
-        echo "1) Proprietary (Non-DKMS) - Recommended for most users"
-        echo "2) Proprietary (DKMS) - For any kernel"
-        echo "3) Proprietary (Open) - Newer driver for some RTX cards"
-        echo "4) Proprietary (Open-DKMS) - Newer driver for some RTX cards"
+        echo -e "\nWhich NVIDIA driver do you want to install?"
+        echo "1) Proprietary (Non-DKMS) - For the 'stable' kernel."
+        echo "2) Proprietary (DKMS) - For any kernel, especially custom ones like Zen."
+        echo "3) Proprietary (Open) - Newer driver for some RTX cards on the 'stable' kernel."
+        echo "4) Proprietary (Open-DKMS) - Newer driver for some RTX cards on any kernel."
         read -p "Enter 1, 2, 3, or 4: " choice
         
         case "$choice" in
-             1)
-                nvidia_packages+=" nvidia"
+            1)
+                nvidia_packages="nvidia"
                 echo "Proprietary (Non-DKMS) drivers selected."
                 break
                 ;;
             2)
-                nvidia_packages+=" nvidia-dkms"
+                nvidia_packages="nvidia-dkms"
                 echo "Proprietary (DKMS) drivers selected."
                 break
                 ;;
             3)
-                nvidia_packages+=" nvidia-open"
+                nvidia_packages="nvidia-open"
                 echo "Proprietary (Open) drivers selected."
                 break
                 ;;
             4)
-                nvidia_packages+=" nvidia-open-dkms"
+                nvidia_packages="nvidia-open-dkms"
                 echo "Proprietary (Open-DKMS) drivers selected."
                 break
                 ;;
             *)
-                echo "Invalid input. Please enter '1' '2' '3' '4'."
+                echo "Invalid input. Please enter '1', '2', '3', or '4'."
                 ;;
         esac
     done
