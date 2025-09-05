@@ -79,7 +79,46 @@ while true; do
     fi
 done
 
-# --- STEP 1.5: NVIDIA DRIVER SELECTION (if applicable) ---
+
+# --- STEP 1.2: Linux Kernel ---
+echo "--------------------------------------------------------------------------------"
+while true; do
+    echo -e "\nWhich Linux Kernel do you want to install?"
+    echo "1) Stable"
+    echo "2) Hardened"
+    echo "3) Longterm"
+    echo "4) Zen"
+    read -p "Enter 1, 2, 3, or 4: " choice
+
+    case "$choice" in
+        1)
+                linux_headers="linux linux-headers"
+                echo "Stable Kernel selected."
+                break
+                ;;
+            2)
+                linux_headers="linux-hardened linux-hardened-headers"
+                echo "Hardened Kernel selected."
+                break
+                ;;
+            3)
+                linux_headers="linux-lts linux-lts-headers"
+                echo "LTS Kernel selected."
+                break
+                ;;
+            4)
+                linux_headers="linux-zen linux-zen-headers"
+                echo "Zen Kernel selected."
+                break
+                ;;
+            *)
+                echo "Invalid input. Please enter '1' '2' '3' '4'."
+                ;;
+        esac
+    done
+fi
+
+# --- STEP 1.3: NVIDIA DRIVER SELECTION (if applicable) ---
 echo "--------------------------------------------------------------------------------"
 echo "Checking for NVIDIA GPU..."
 
@@ -88,15 +127,15 @@ if lspci | grep -q "NVIDIA"; then
     echo "NVIDIA GPU detected! 🚀"
     
     # Pre-select base packages for NVIDIA
-    nvidia_packages="nvidia-utils linux-headers"
+    nvidia_packages="nvidia-utils nvidia-utils nvidia-settings"
 
     while true; do
-        echo -e "\nWhich NVIDIA driver do you want to install?"
+        echo -e "\nWhich NVIDIA driver do you want to install? Choose DKMS if chose other than stable"
         echo "1) Proprietary (Non-DKMS) - Recommended for most users"
         echo "2) Proprietary (DKMS) - For any kernel"
         echo "3) Proprietary (Open) - Newer driver for some RTX cards"
         echo "4) Proprietary (Open-DKMS) - Newer driver for some RTX cards"
-        read -p "Enter 1 or 2: " choice
+        read -p "Enter 1, 2, 3, or 4: " choice
         
         case "$choice" in
              1)
@@ -186,7 +225,7 @@ echo "Updating pacman configuration for faster downloads..."
 sed -i "s/^#*ParallelDownloads = 5$/ParallelDownloads = ${cores}/" /etc/pacman.conf
 
 echo "Installing base system and essential packages..."
-pacstrap /mnt base base-devel vim networkmanager git cryptsetup grub efibootmgr linux linux-firmware btrfs-progs $nvidia_packages
+pacstrap /mnt base base-devel vim networkmanager git cryptsetup grub efibootmgr $linux_kernel btrfs-progs $nvidia_packages
 
 echo "Generating fstab file..."
 genfstab -U /mnt >> /mnt/etc/fstab
