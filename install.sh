@@ -125,7 +125,7 @@ if lspci | grep -q "NVIDIA"; then
     echo "NVIDIA GPU detected! 🚀"
     
     # Initialize an empty variable to add NVIDIA packages to
-    nvidia_packages=""
+    nvidia_packages="nvidia-utils nvidia-settings"
 
     while true; do
         echo -e "\nWhich NVIDIA driver do you want to install?"
@@ -133,26 +133,26 @@ if lspci | grep -q "NVIDIA"; then
         echo "2) Proprietary (DKMS) - For any kernel, especially custom ones like Zen."
         echo "3) Proprietary (Open) - Newer driver for some RTX cards on the 'stable' kernel."
         echo "4) Proprietary (Open-DKMS) - Newer driver for some RTX cards on any kernel."
-        read -p "Enter 1, 2, 3, or 4: " choice
+        read -p "Enter 1, 2, 3, or 4: " choice-nvidia
         
-        case "$choice" in
+        case "$choice-nvidia" in
             1)
-                nvidia_packages="nvidia"
+                nvidia_packages+=" nvidia"
                 echo "Proprietary (Non-DKMS) drivers selected."
                 break
                 ;;
             2)
-                nvidia_packages="nvidia-dkms"
+                nvidia_packages+=" nvidia-dkms"
                 echo "Proprietary (DKMS) drivers selected."
                 break
                 ;;
             3)
-                nvidia_packages="nvidia-open"
+                nvidia_packages+=" nvidia-open"
                 echo "Proprietary (Open) drivers selected."
                 break
                 ;;
             4)
-                nvidia_packages="nvidia-open-dkms"
+                nvidia_packages+=" nvidia-open-dkms"
                 echo "Proprietary (Open-DKMS) drivers selected."
                 break
                 ;;
