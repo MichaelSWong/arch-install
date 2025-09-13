@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Arch Linux Automated Installation Script with LUKS Encryption and Btrfs
+# Arch Linux Automated Installation Script with LUKS Encryption and Filesystem Selection
 # ==============================================================================
 # This script automates the installation of Arch Linux on a specified disk.
 # It assumes you have booted into the Arch Linux live environment.
@@ -17,23 +17,22 @@
 set -e
 
 # --- STEP 1: GATHER USER INPUT ---
-# Using `read -s` for passwords to prevent them from being displayed.
 echo "--------------------------------------------------------------------------------"
-echo "                    -@                "
-echo "                   .##@               "
-echo "                  .####@              "
-echo "                  @#####@             "
-echo "                . *######@            "
-echo "               .##@o@#####@           "
-echo "              /############@          "
-echo "             /##############@         "
-echo "            @######@* *%######@        "
-echo "           @######@      %#####o       "
-echo "          @######@       ######%      "
-echo "        -@#######h       ######@.    "
-echo "       /#####h**``        **%@####@   "
-echo "      @H@*`                    `*%#@  "
-echo "     *`                            `* "
+echo "                    -@                "
+echo "                   .##@               "
+echo "                  .####@              "
+echo "                  @#####@             "
+echo "                . *######@            "
+echo "               .##@o@#####@           "
+echo "              /############@          "
+echo "             /##############@         "
+echo "            @######@* *%######@        "
+echo "           @######@      %#####o       "
+echo "          @######@       ######%      "
+echo "        -@#######h       ######@.    "
+echo "       /#####h**``        **%@####@   "
+echo "      @H@*`                    `*%#@  "
+echo "     *`                            `* "
 echo "--------------------------------------------------------------------------------"
 
 echo -e "\nEnter username to be created:"
@@ -47,9 +46,9 @@ function set_password() {
 
     while true; do
         echo -e "\n${prompt_msg}"
-        read -s ${password_var}
+        read -s "$password_var"
         echo -e "\nPlease re-enter the password to confirm:"
-        read -s ${password_confirm_var}
+        read -s "$password_confirm_var"
 
         if [[ "${!password_var}" == "${!password_confirm_var}" ]]; then
             break
@@ -77,6 +76,37 @@ while true; do
     else
         echo -e "\nInvalid input. Please enter a positive integer."
     fi
+done
+
+# --- STEP 1.1: Filesystem Selection ---
+echo "--------------------------------------------------------------------------------"
+while true; do
+    echo -e "\nWhich filesystem do you want to install?"
+    echo "1) Btrfs"
+    echo "2) Ext4"
+    read -p "Enter 1 or 2: " fs_choice
+
+    case "$fs_choice" in
+        1)
+            fs_type="btrfs"
+            fs_package="btrfs-progs"
+            fs_mkfs_cmd="mkfs.btrfs -f /dev/mapper/cryptroot"
+            fs_hook="btrfs"
+            echo "Btrfs selected. 🚀"
+            break
+            ;;
+        2)
+            fs_type="ext4"
+            fs_package="e2fsprogs"
+            fs_mkfs_cmd="mkfs.ext4 /dev/mapper/cryptroot"
+            fs_hook="ext4"
+            echo "Ext4 selected. 💾"
+            break
+            ;;
+        *)
+            echo "Invalid input. Please enter '1' or '2'."
+            ;;
+    esac
 done
 
 # --- STEP 1.2: Linux Kernel ---
@@ -190,8 +220,8 @@ parted -s "${DISK}" mklabel gpt
 parted -s "${DISK}" mkpart primary fat32 1MiB 1025MiB
 parted -s "${DISK}" set 1 esp on
 
-# Create a second partition for the encrypted root (Btrfs)
-parted -s "${DISK}" mkpart primary btrfs 1025MiB 100%
+# Create a second partition for the encrypted root using the selected filesystem
+parted -s "${DISK}" mkpart primary "${fs_type}" 1025MiB 100%
 
 # Format the boot partition
 echo "Formatting boot partition: ${BOOT_PARTITION}"
@@ -205,9 +235,9 @@ echo -n "${rtpw}" | cryptsetup --verify-passphrase -v luksFormat "${ROOT_PARTITI
 echo "Opening encrypted partition as 'cryptroot'..."
 echo -n "${rtpw}" | cryptsetup luksOpen "${ROOT_PARTITION}" cryptroot
 
-# Format the opened LUKS container with Btrfs
-echo "Formatting the LUKS container with Btrfs..."
-mkfs.btrfs -f /dev/mapper/cryptroot
+# Format the opened LUKS container with the selected filesystem
+echo "Formatting the LUKS container with ${fs_type}..."
+${fs_mkfs_cmd}
 
 # --- STEP 4: MOUNT DISKS ---
 echo "Mounting partitions..."
@@ -223,7 +253,7 @@ echo "Updating pacman configuration for faster downloads..."
 sed -i "s/^#*ParallelDownloads = 5$/ParallelDownloads = ${cores}/" /etc/pacman.conf
 
 echo "Installing base system and essential packages..."
-pacstrap /mnt base base-devel vim networkmanager git cryptsetup grub efibootmgr $linux_kernel btrfs-progs $nvidia_packages
+pacstrap /mnt base base-devel vim networkmanager git cryptsetup grub efibootmgr $linux_packages $fs_package $nvidia_packages
 
 echo "Generating fstab file..."
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -248,9 +278,9 @@ arch-chroot /mnt <<EOF
     echo "${host}" > /etc/hostname
 
     # Add hosts entries
-    echo "127.0.0.1   localhost" >> /etc/hosts
-    echo "::1         localhost" >> /etc/hosts
-    echo "127.0.1.1   ${host}.localdomain ${host}" >> /etc/hosts
+    echo "127.0.0.1      localhost" >> /etc/hosts
+    echo "::1            localhost" >> /etc/hosts
+    echo "127.0.1.1      ${host}.localdomain ${host}" >> /etc/hosts
 
     # Set root password
     echo "Setting root password..."
@@ -277,8 +307,8 @@ EOF
 # --- STEP 7: INITCPIO & GRUB ---
 echo "Configuring mkinitcpio..."
 # Update HOOKS in mkinitcpio.conf
-# Note: The 'btrfs' hook is needed to handle the btrfs filesystem. It must come after 'encrypt'.
-sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt btrfs filesystems fsck)/' /mnt/etc/mkinitcpio.conf
+# The filesystem hook is now a variable based on user input.
+sed -i "s/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt ${fs_hook} filesystems fsck)/" /mnt/etc/mkinitcpio.conf
 
 echo "Generating initramfs images..."
 arch-chroot /mnt mkinitcpio -P
