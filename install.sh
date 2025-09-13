@@ -219,7 +219,7 @@ parted -s "${DISK}" mkpart primary fat32 1MiB 1025MiB
 parted -s "${DISK}" set 1 esp on
 
 # Create a second partition for the encrypted root (Linux filesystem)
-parted -s "${DISK}" mkpart primary linux-root 1025MiB 100%
+parted -s "${DISK}" mkpart primary "" 1025MiB 100%
 
 # Format the boot partition
 echo "Formatting boot partition: ${BOOT_PARTITION}"
