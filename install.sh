@@ -163,9 +163,9 @@ if lspci | grep -q "NVIDIA"; then
         echo "2) Proprietary (DKMS) - For any kernel, especially custom ones like Zen."
         echo "3) Proprietary (Open) - Newer driver for some RTX cards on the 'stable' kernel."
         echo "4) Proprietary (Open-DKMS) - Newer driver for some RTX cards on any kernel."
-        read -p "Enter 1, 2, 3, or 4: " choice-nvidia
+        read -p "Enter 1, 2, 3, or 4: " choice_nvidia
         
-        case "$choice-nvidia" in
+        case "$choice_nvidia" in
             1)
                 nvidia_packages+=" nvidia"
                 echo "Proprietary (Non-DKMS) drivers selected."
@@ -306,9 +306,16 @@ EOF
 
 # --- STEP 7: INITCPIO & GRUB ---
 echo "Configuring mkinitcpio..."
-# Update HOOKS in mkinitcpio.conf
-# The filesystem hook is now a variable based on user input.
-sed -i "s/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt ${fs_hook} filesystems fsck)/" /mnt/etc/mkinitcpio.conf
+
+# The `encrypt` hook must come before the filesystem hook.
+# The 'btrfs' hook is needed for btrfs. Other filesystems are handled by `filesystems`.
+if [[ "${fs_type}" == "btrfs" ]]; then
+    # For Btrfs, the `btrfs` hook is required.
+    sed -i "s/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt btrfs filesystems fsck)/" /mnt/etc/mkinitcpio.conf
+else
+    # For Ext4 (or other standard filesystems), the `filesystems` hook is sufficient.
+    sed -i "s/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt filesystems fsck)/" /mnt/etc/mkinitcpio.conf
+fi
 
 echo "Generating initramfs images..."
 arch-chroot /mnt mkinitcpio -P
