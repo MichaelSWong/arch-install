@@ -88,17 +88,15 @@ while true; do
 
     case "$fs_choice" in
         1)
-            fs_parted_type="btrfs"
+            fs_type="btrfs"
             fs_package="btrfs-progs"
-            fs_mkfs_cmd="mkfs.btrfs -f /dev/mapper/cryptroot"
             fs_hook="btrfs"
             echo "Btrfs selected. 🚀"
             break
             ;;
         2)
-            fs_parted_type="ext4"
+            fs_type="ext4"
             fs_package="e2fsprogs"
-            fs_mkfs_cmd="mkfs.ext4 /dev/mapper/cryptroot"
             fs_hook="" # Ext4 is handled by `filesystems` hook
             echo "Ext4 selected. 💾"
             break
@@ -221,7 +219,7 @@ parted -s "${DISK}" mkpart primary fat32 1MiB 1025MiB
 parted -s "${DISK}" set 1 esp on
 
 # Create a second partition for the encrypted root (Linux filesystem)
-parted -s "${DISK}" mkpart primary ${fs_parted_type} 1025MiB 100%
+parted -s "${DISK}" mkpart primary linux-root 1025MiB 100%
 
 # Format the boot partition
 echo "Formatting boot partition: ${BOOT_PARTITION}"
@@ -238,7 +236,7 @@ echo -n "${rtpw}" | cryptsetup luksOpen "${ROOT_PARTITION}" cryptroot
 # Format the opened LUKS container and create subvolumes if Btrfs is selected
 echo "Formatting the LUKS container with ${fs_type}..."
 if [[ "${fs_type}" == "btrfs" ]]; then
-    ${fs_mkfs_cmd}
+    mkfs.btrfs -f /dev/mapper/cryptroot
     mount /dev/mapper/cryptroot /mnt
     echo "Creating Btrfs subvolumes..."
     btrfs subvolume create /mnt/@
@@ -246,6 +244,8 @@ if [[ "${fs_type}" == "btrfs" ]]; then
     btrfs subvolume create /mnt/@log
     btrfs subvolume create /mnt/@tmp
     umount /mnt
+else
+    mkfs.ext4 /dev/mapper/cryptroot
 fi
 
 # --- STEP 4: MOUNT DISKS ---
