@@ -88,7 +88,7 @@ while true; do
 
     case "$fs_choice" in
         1)
-            fs_type="btrfs"
+            fs_parted_type="btrfs"
             fs_package="btrfs-progs"
             fs_mkfs_cmd="mkfs.btrfs -f /dev/mapper/cryptroot"
             fs_hook="btrfs"
@@ -96,10 +96,10 @@ while true; do
             break
             ;;
         2)
-            fs_type="ext4"
+            fs_parted_type="ext4"
             fs_package="e2fsprogs"
             fs_mkfs_cmd="mkfs.ext4 /dev/mapper/cryptroot"
-            fs_hook="ext4"
+            fs_hook="" # Ext4 is handled by `filesystems` hook
             echo "Ext4 selected. 💾"
             break
             ;;
@@ -220,8 +220,8 @@ parted -s "${DISK}" mklabel gpt
 parted -s "${DISK}" mkpart primary fat32 1MiB 1025MiB
 parted -s "${DISK}" set 1 esp on
 
-# Create a second partition for the encrypted root using the selected filesystem
-parted -s "${DISK}" mkpart primary "${fs_type}" 1025MiB 100%
+# Create a second partition for the encrypted root (Linux filesystem)
+parted -s "${DISK}" mkpart primary linux-root 1025MiB 100%
 
 # Format the boot partition
 echo "Formatting boot partition: ${BOOT_PARTITION}"
@@ -235,13 +235,30 @@ echo -n "${rtpw}" | cryptsetup --verify-passphrase -v luksFormat "${ROOT_PARTITI
 echo "Opening encrypted partition as 'cryptroot'..."
 echo -n "${rtpw}" | cryptsetup luksOpen "${ROOT_PARTITION}" cryptroot
 
-# Format the opened LUKS container with the selected filesystem
+# Format the opened LUKS container and create subvolumes if Btrfs is selected
 echo "Formatting the LUKS container with ${fs_type}..."
-${fs_mkfs_cmd}
+if [[ "${fs_type}" == "btrfs" ]]; then
+    ${fs_mkfs_cmd}
+    mount /dev/mapper/cryptroot /mnt
+    echo "Creating Btrfs subvolumes..."
+    btrfs subvolume create /mnt/@
+    btrfs subvolume create /mnt/@home
+    btrfs subvolume create /mnt/@log
+    btrfs subvolume create /mnt/@tmp
+    umount /mnt
+fi
 
 # --- STEP 4: MOUNT DISKS ---
 echo "Mounting partitions..."
-mount /dev/mapper/cryptroot /mnt
+if [[ "${fs_type}" == "btrfs" ]]; then
+    mount -o compress=zstd,subvol=@ /dev/mapper/cryptroot /mnt
+    mkdir -p /mnt/{home,var/log,var/tmp}
+    mount -o compress=zstd,subvol=@home /dev/mapper/cryptroot /mnt/home
+    mount -o compress=zstd,subvol=@log /dev/mapper/cryptroot /mnt/var/log
+    mount -o compress=zstd,subvol=@tmp /dev/mapper/cryptroot /mnt/var/tmp
+else
+    mount /dev/mapper/cryptroot /mnt
+fi
 
 # Create the boot directory and mount the boot partition
 mkdir -p /mnt/boot
@@ -306,14 +323,13 @@ EOF
 
 # --- STEP 7: INITCPIO & GRUB ---
 echo "Configuring mkinitcpio..."
-
-# The `encrypt` hook must come before the filesystem hook.
-# The 'btrfs' hook is needed for btrfs. Other filesystems are handled by `filesystems`.
+# Hooks are required to prompt for the LUKS password at boot.
+# 'keyboard' and 'keymap' hooks are essential for this.
 if [[ "${fs_type}" == "btrfs" ]]; then
-    # For Btrfs, the `btrfs` hook is required.
+    # For Btrfs, `btrfs` hook is needed.
     sed -i "s/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt btrfs filesystems fsck)/" /mnt/etc/mkinitcpio.conf
 else
-    # For Ext4 (or other standard filesystems), the `filesystems` hook is sufficient.
+    # For Ext4 (or other standard filesystems), `filesystems` is sufficient.
     sed -i "s/^HOOKS=.*/HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt filesystems fsck)/" /mnt/etc/mkinitcpio.conf
 fi
 
