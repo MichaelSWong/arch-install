@@ -118,7 +118,7 @@ while true; do
     read -p "Enter 1, 2, 3, or 4: " choice
 
     # Initialize an empty variable to add Linux packages to
-    nvidia_packages="linux-firmware"
+    linux_packages="linux-firmware"
 
     case "$choice" in
         1)
