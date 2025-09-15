@@ -117,24 +117,27 @@ while true; do
     echo "4) Zen (linux-zen)"
     read -p "Enter 1, 2, 3, or 4: " choice
 
+    # Initialize an empty variable to add Linux packages to
+    nvidia_packages="linux-firmware"
+
     case "$choice" in
         1)
-            linux_packages="linux linux-headers"
+            linux_packages+= "linux linux-headers"
             echo "Stable Kernel selected."
             break
             ;;
         2)
-            linux_packages="linux-hardened linux-hardened-headers"
+            linux_packages+=" linux-hardened linux-hardened-headers"
             echo "Hardened Kernel selected."
             break
             ;;
         3)
-            linux_packages="linux-lts linux-lts-headers"
+            linux_packages+=" linux-lts linux-lts-headers"
             echo "LTS Kernel selected."
             break
             ;;
         4)
-            linux_packages="linux-zen linux-zen-headers"
+            linux_packages+=" linux-zen linux-zen-headers"
             echo "Zen Kernel selected."
             break
             ;;
