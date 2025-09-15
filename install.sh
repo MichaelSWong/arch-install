@@ -217,8 +217,8 @@ sgdisk --zap-all "${DISK}"
 # Create a new GPT partition table
 parted -s "${DISK}" mklabel gpt
 
-# Create a 1GB boot partition (FAT32)
-parted -s "${DISK}" mkpart primary fat32 1MiB 1025MiB
+# Create a 500MB boot partition (FAT32)
+parted -s "${DISK}" mkpart primary fat32 1MiB 501MiB
 parted -s "${DISK}" set 1 esp on
 
 # Create a second partition for the encrypted root (Linux filesystem)
